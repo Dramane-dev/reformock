@@ -1,0 +1,115 @@
+import { buildApp } from "../src/app.ts";
+
+import type { FastifyInstance } from "fastify";
+
+export async function newApp(): Promise<FastifyInstance> {
+  return buildApp();
+}
+
+export async function getToken(app: FastifyInstance): Promise<string> {
+  const res = await app.inject({
+    method: "POST",
+    url: "/oauth/token",
+    payload: {
+      grant_type: "client_credentials",
+      client_id: "test-client",
+      client_secret: "test-secret",
+    },
+  });
+  if (res.statusCode !== 200) {
+    throw new Error(`token request failed: ${res.statusCode} ${res.payload}`);
+  }
+  return res.json().access_token as string;
+}
+
+export function authHeader(token: string): Record<string, string> {
+  return { authorization: `Bearer ${token}` };
+}
+
+export interface MultipartField {
+  name: string;
+  value?: string;
+  filename?: string;
+  contentType?: string;
+  content?: string | Buffer;
+}
+
+const BOUNDARY = "----ReformockTestBoundary";
+
+export function multipart(fields: MultipartField[]): { payload: Buffer; contentType: string } {
+  const parts: Buffer[] = [];
+  for (const f of fields) {
+    let header = `--${BOUNDARY}\r\nContent-Disposition: form-data; name="${f.name}"`;
+    if (f.filename !== undefined) {
+      header += `; filename="${f.filename}"`;
+    }
+    header += "\r\n";
+    if (f.contentType) {
+      header += `Content-Type: ${f.contentType}\r\n`;
+    }
+    header += "\r\n";
+    const value = f.content ?? f.value ?? "";
+    parts.push(Buffer.from(header, "utf8"));
+    parts.push(Buffer.isBuffer(value) ? value : Buffer.from(String(value), "utf8"));
+    parts.push(Buffer.from("\r\n", "utf8"));
+  }
+  parts.push(Buffer.from(`--${BOUNDARY}--\r\n`, "utf8"));
+  return {
+    payload: Buffer.concat(parts),
+    contentType: `multipart/form-data; boundary=${BOUNDARY}`,
+  };
+}
+
+export const UBL_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+         xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <cbc:ID>INV-UBL-001</cbc:ID>
+  <cbc:IssueDate>2026-01-15</cbc:IssueDate>
+  <cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>
+  <cac:AccountingSupplierParty>
+    <cac:Party>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>Vendeur SARL</cbc:RegistrationName>
+        <cbc:CompanyID>FR12345678901</cbc:CompanyID>
+      </cac:PartyLegalEntity>
+    </cac:Party>
+  </cac:AccountingSupplierParty>
+  <cac:AccountingCustomerParty>
+    <cac:Party>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>Acheteur SAS</cbc:RegistrationName>
+        <cbc:CompanyID>FR98765432109</cbc:CompanyID>
+      </cac:PartyLegalEntity>
+    </cac:Party>
+  </cac:AccountingCustomerParty>
+  <cac:LegalMonetaryTotal>
+    <cbc:PayableAmount currencyID="EUR">1200.50</cbc:PayableAmount>
+  </cac:LegalMonetaryTotal>
+</Invoice>`;
+
+export const CII_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
+                          xmlns:ram="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">
+  <rsm:ExchangedDocument>
+    <ram:ID>INV-CII-002</ram:ID>
+    <ram:IssueDateTime><udt:DateTimeString format="102">20260115</udt:DateTimeString></ram:IssueDateTime>
+  </rsm:ExchangedDocument>
+  <ram:SellerTradeParty><ram:Name>Vendeur CII</ram:Name></ram:SellerTradeParty>
+  <ram:BuyerTradeParty><ram:Name>Acheteur CII</ram:Name></ram:BuyerTradeParty>
+  <ram:GrandTotalAmount>980.00</ram:GrandTotalAmount>
+  <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>
+</rsm:CrossIndustryInvoice>`;
+
+export const CDAR_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<rsm:CrossDomainAcknowledgementAndResponse
+    xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossDomainAcknowledgementAndResponse:100"
+    xmlns:ram="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100">
+  <rsm:AcknowledgementDocument>
+    <ram:ReferenceReferencedDocument>
+      <ram:IssuerAssignedID>INV-CDAR-003</ram:IssuerAssignedID>
+    </ram:ReferenceReferencedDocument>
+    <ram:StatusCode>206</ram:StatusCode>
+    <ram:StatusName>Approuvée</ram:StatusName>
+  </rsm:AcknowledgementDocument>
+</rsm:CrossDomainAcknowledgementAndResponse>`;

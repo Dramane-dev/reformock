@@ -1,0 +1,49 @@
+{
+  "name": "reformock",
+  "version": "1.0.0",
+  "description": "Réformock — mock PDP de la RFE (Réforme de la Facturation Électronique) : API Flow Service AFNOR XP Z12-013 pour tests d'intégration",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "node src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
+    "test": "WEBHOOK_ALLOW_PRIVATE=true node --test \"test/**/*.test.ts\"",
+    "test:unit": "WEBHOOK_ALLOW_PRIVATE=true node --test \"test/unit/**/*.test.ts\"",
+    "test:integration": "WEBHOOK_ALLOW_PRIVATE=true node --test \"test/integration/**/*.test.ts\"",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@fastify/formbody": "^8.0.2",
+    "@fastify/helmet": "^13.0.2",
+    "@fastify/multipart": "^10.0.0",
+    "@fastify/rate-limit": "^10.2.2",
+    "@fastify/static": "^9.1.3",
+    "fastify": "^5.10.0",
+    "pdfkit": "^0.19.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "@types/pdfkit": "^0.17.6",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
+    "oxfmt": "^0.58.0",
+    "oxlint": "^1.73.0",
+    "typescript": "^6.0.3"
+  },
+  "lint-staged": {
+    "*.{ts,mts,cts,js,mjs,cjs}": [
+      "oxlint --fix",
+      "oxfmt"
+    ]
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@10.12.4"
+}

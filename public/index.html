@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Réformock · Console de dépôt · Flow Service XP Z12-013</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <span class="brand" aria-hidden="true">RFE</span>
+      <span class="titles">
+        <h1>Réformock</h1>
+        <span class="sub">Console de dépôt · API Flow Service · norme AFNOR XP Z12-013</span>
+      </span>
+      <span class="status"
+        ><span class="dot" id="hcDot"></span><span id="hcText">vérification…</span></span
+      >
+    </header>
+    <div class="ephemeral">
+      Stockage éphémère : tous les flux déposés ici disparaissent au redémarrage du conteneur
+    </div>
+
+    <main>
+      <section class="card" id="authCard">
+        <div class="body authbar">
+          <span class="authtitle">Compte API</span>
+          <div class="authfield">
+            <label for="clientId">client_id</label>
+            <input type="text" id="clientId" value="test-client" autocomplete="off" />
+          </div>
+          <div class="authfield">
+            <label for="clientSecret">client_secret</label>
+            <input type="text" id="clientSecret" value="test-secret" autocomplete="off" />
+          </div>
+          <button id="btnConnect">Obtenir un jeton</button>
+          <span id="authState">non connecté</span>
+        </div>
+      </section>
+
+      <div class="tabs" role="tablist" aria-label="Vues de la console">
+        <button
+          class="tab"
+          id="tabRegistry"
+          role="tab"
+          aria-selected="true"
+          aria-controls="panelRegistry"
+        >
+          Registre des flux
+        </button>
+        <button
+          class="tab"
+          id="tabDeposit"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panelDeposit"
+          tabindex="-1"
+        >
+          Bordereau de dépôt
+        </button>
+      </div>
+
+      <section class="card" id="panelRegistry" role="tabpanel" aria-labelledby="tabRegistry">
+        <div class="toolbar">
+          <select id="fType" aria-label="Filtrer par type">
+            <option value="">Tous types</option>
+            <option value="SupplierInvoice">SupplierInvoice</option>
+            <option value="CustomerInvoice">CustomerInvoice</option>
+            <option value="SupplierInvoiceLC">SupplierInvoiceLC</option>
+            <option value="CustomerInvoiceLC">CustomerInvoiceLC</option>
+          </select>
+          <select id="fDir" aria-label="Filtrer par direction">
+            <option value="">In + Out</option>
+            <option value="In">In</option>
+            <option value="Out">Out</option>
+          </select>
+          <button class="secondary" id="btnRefresh">Actualiser</button>
+          <button class="danger" id="btnReset">Vider le registre</button>
+          <span class="count" id="count"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Facture / flux</th>
+                <th>Type</th>
+                <th>Syntaxe</th>
+                <th>Statut</th>
+                <th>Émetteur → Destinataire</th>
+                <th class="amount">TTC</th>
+                <th>Reçu le</th>
+                <th>Documents</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+          <div class="empty" id="empty" hidden>
+            Registre vide. Déposez un fichier ou lancez le générateur.
+          </div>
+        </div>
+        <div class="pager">
+          <span class="pager-info" id="pageInfo">Page 1 / 1</span>
+          <div class="pager-nav">
+            <button
+              class="secondary pgbtn"
+              id="pgFirst"
+              aria-label="Première page"
+              title="Première page"
+            >
+              «
+            </button>
+            <button
+              class="secondary pgbtn"
+              id="pgPrev"
+              aria-label="Page précédente"
+              title="Page précédente"
+            >
+              ‹
+            </button>
+            <button
+              class="secondary pgbtn"
+              id="pgNext"
+              aria-label="Page suivante"
+              title="Page suivante"
+            >
+              ›
+            </button>
+            <button
+              class="secondary pgbtn"
+              id="pgLast"
+              aria-label="Dernière page"
+              title="Dernière page"
+            >
+              »
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="panelDeposit" role="tabpanel" aria-labelledby="tabDeposit" hidden>
+        <div class="body depositbody">
+          <div id="dropzone" role="button" tabindex="0" aria-label="Déposer des fichiers XML">
+            <div class="big">Déposez vos fichiers UBL ici</div>
+            <div class="hint">
+              XML (UBL 2.1, CII, CDAR) ou Factur-X PDF : glisser-déposer ou cliquer
+            </div>
+          </div>
+          <input
+            type="file"
+            id="fileInput"
+            multiple
+            accept=".xml,.pdf,application/xml,text/xml,application/pdf"
+          />
+
+          <label for="direction">Direction du flux</label>
+          <select id="direction">
+            <option value="In" selected>
+              In : flux entrant (visible comme facture reçue de la PDP)
+            </option>
+            <option value="Out">Out : flux sortant (comme une facture déposée)</option>
+          </select>
+
+          <label for="flowType">Type de flux</label>
+          <select id="flowType">
+            <option value="" selected>Automatique (selon direction et syntaxe)</option>
+            <option value="SupplierInvoice">SupplierInvoice : facture d'achat</option>
+            <option value="CustomerInvoice">CustomerInvoice : facture de vente</option>
+            <option value="SupplierInvoiceLC">SupplierInvoiceLC : cycle de vie achat</option>
+            <option value="CustomerInvoiceLC">CustomerInvoiceLC : cycle de vie vente</option>
+          </select>
+
+          <label for="trackingId"
+            >trackingId <span style="font-weight: 400; color: var(--gray)">(optionnel)</span></label
+          >
+          <input type="text" id="trackingId" placeholder="ex : ERP-REF-001" />
+          <div class="field-hint">
+            Identifiant interne, réutilisable comme critère de recherche.
+          </div>
+
+          <div id="uploadResults"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Serveur de test : données fictives. Le simulateur génère aussi ses propres factures ; les flux
+      déposés via cette console portent l'étiquette <span class="tag web">web</span>.
+    </footer>
+
+    <script src="config.js"></script>
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
