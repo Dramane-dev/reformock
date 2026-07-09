@@ -20,7 +20,7 @@ const ConfigSchema = z
     MAX_UPLOAD_FILES: z.coerce.number().int().min(1).default(10),
     AUTH_DISABLED: z.stringbool().default(false),
     OAUTH_CLIENT_ID: z.string().trim().default("test-client"),
-    OAUTH_CLIENT_SECRET: z.string().trim().default("test-secret"),
+    OAUTH_CLIENT_SECRET: z.string().trim().optional(),
     OAUTH_USERNAME: z.string().trim().default("test-user"),
     OAUTH_PASSWORD: z.string().trim().default("test-password"),
     TOKEN_TTL_SECONDS: z.coerce.number().int().min(1).default(3600),
