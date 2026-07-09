@@ -1,10 +1,26 @@
 # Réformock
 
+[![CI](https://github.com/bedis-elacheche/reformock/actions/workflows/ci.yml/badge.svg)](https://github.com/bedis-elacheche/reformock/actions/workflows/ci.yml)
+[![Docker Pulls](https://img.shields.io/docker/pulls/belacheche/reformock?logo=docker)](https://hub.docker.com/r/belacheche/reformock)
+[![Docker Image Version](https://img.shields.io/docker/v/belacheche/reformock?sort=semver&logo=docker&label=docker%20hub)](https://hub.docker.com/r/belacheche/reformock)
+
 Image Docker Node.js simulant une **PDP (Plateforme de Dématérialisation Partenaire)** exposant l'API Flow Service de la norme expérimentale **AFNOR XP Z12-013** (réforme de la facturation électronique française), pour tester une chaîne d'intégration en l'absence d'environnement de test.
 
 Le serveur **génère automatiquement des factures fictives** (UBL 2.1, UN/CEFACT CII, lisible PDF) et des **statuts de cycle de vie** (syntaxe CDAR), et les expose via les routes obligatoires de la norme.
 
 ## Démarrage rapide
+
+L'image est publiée sur [Docker Hub](https://hub.docker.com/r/belacheche/reformock) :
+
+```bash
+docker run -p 3000:3000 belacheche/reformock
+```
+
+L'API est disponible sur `http://localhost:3000/v1` et la **console web de dépôt** sur `http://localhost:3000/`.
+
+Le tag `latest` suit la branche `main`. Pour une chaîne d'intégration, épinglez plutôt une version : `belacheche/reformock:1.0.0` fige la version exacte, `belacheche/reformock:1.0` suit les correctifs de la mineure.
+
+Pour construire depuis les sources (développement du mock) :
 
 ```bash
 docker build -t reformock . && docker run -p 3000:3000 reformock
