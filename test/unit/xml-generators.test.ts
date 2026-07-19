@@ -121,32 +121,41 @@ test("generateCII exposes a creditor IBAN in the payment means", () => {
   assert.ok(xml.includes("<ram:IBANID>FR3710096000704155525246C13</ram:IBANID>"));
 });
 
-test("generateCDAR embeds status and round-trips through the parser", () => {
+test("generateCDAR embeds the invoice date and SIREN so the search triplet round-trips", () => {
   const xml = generateCDAR({
-    invoiceNumber: "FA-2026-4242",
     statusCode: "210",
     statusName: "Refusée",
-    sellerSiret: "12345678900011",
-    buyerSiret: "98765432100022",
     comment: "Montant erroné",
+    invoice: { number: "FA-2026-4242", date: "2026-03-04" },
+    seller: { siret: "12345678900011", siren: "123456789" },
+    buyer: { siret: "98765432100022", siren: "987654321" },
   });
   assert.ok(xml.includes("<ram:StatusReason>Montant erroné</ram:StatusReason>"));
+  assert.ok(xml.includes('<qdt:DateTimeString format="102">20260304</qdt:DateTimeString>'));
+  assert.ok(xml.includes('<ram:ID schemeID="0009">123456789</ram:ID>'), "seller SIREN present");
+  assert.ok(
+    xml.includes('<ram:GlobalID schemeID="0002">987654321</ram:GlobalID>'),
+    "buyer SIREN present",
+  );
+
   const parsed = parseFlowFile(Buffer.from(xml, "utf8"));
   assert.equal(parsed.flowSyntax, "CDAR");
   assert.equal(parsed.invoiceNumber, "FA-2026-4242");
   assert.equal(parsed.metadata.statusCode, "210");
   assert.equal(parsed.metadata.statusName, "Refusée");
+  assert.equal(parsed.metadata.issueDate, "2026-03-04");
 });
 
-test("generateCDAR omits StatusReason when no comment is given", () => {
+test("generateCDAR omits the invoice date and StatusReason when those inputs are absent", () => {
   const xml = generateCDAR({
-    invoiceNumber: "X",
     statusCode: "206",
     statusName: "Approuvée",
-    sellerSiret: "1",
-    buyerSiret: "2",
+    invoice: { number: "X" },
+    seller: { siret: "1", siren: "1" },
+    buyer: { siret: "2", siren: "2" },
   });
   assert.ok(!xml.includes("StatusReason"));
+  assert.ok(!xml.includes("FormattedIssueDateTime"));
 });
 
 test("generateReadablePDF returns a real PDF buffer", async () => {

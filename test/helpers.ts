@@ -69,17 +69,27 @@ export const UBL_XML = `<?xml version="1.0" encoding="UTF-8"?>
   <cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>
   <cac:AccountingSupplierParty>
     <cac:Party>
+      <cac:PartyIdentification><cbc:ID schemeID="0009">12345678900011</cbc:ID></cac:PartyIdentification>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>FR12345678901</cbc:CompanyID>
+        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>
+      </cac:PartyTaxScheme>
       <cac:PartyLegalEntity>
         <cbc:RegistrationName>Vendeur SARL</cbc:RegistrationName>
-        <cbc:CompanyID>FR12345678901</cbc:CompanyID>
+        <cbc:CompanyID schemeID="0002">123456789</cbc:CompanyID>
       </cac:PartyLegalEntity>
     </cac:Party>
   </cac:AccountingSupplierParty>
   <cac:AccountingCustomerParty>
     <cac:Party>
+      <cac:PartyIdentification><cbc:ID schemeID="0009">98765432100022</cbc:ID></cac:PartyIdentification>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>FR98765432109</cbc:CompanyID>
+        <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>
+      </cac:PartyTaxScheme>
       <cac:PartyLegalEntity>
         <cbc:RegistrationName>Acheteur SAS</cbc:RegistrationName>
-        <cbc:CompanyID>FR98765432109</cbc:CompanyID>
+        <cbc:CompanyID schemeID="0002">987654321</cbc:CompanyID>
       </cac:PartyLegalEntity>
     </cac:Party>
   </cac:AccountingCustomerParty>
@@ -95,8 +105,15 @@ export const CII_XML = `<?xml version="1.0" encoding="UTF-8"?>
     <ram:ID>INV-CII-002</ram:ID>
     <ram:IssueDateTime><udt:DateTimeString format="102">20260115</udt:DateTimeString></ram:IssueDateTime>
   </rsm:ExchangedDocument>
-  <ram:SellerTradeParty><ram:Name>Vendeur CII</ram:Name></ram:SellerTradeParty>
-  <ram:BuyerTradeParty><ram:Name>Acheteur CII</ram:Name></ram:BuyerTradeParty>
+  <ram:SellerTradeParty>
+    <ram:Name>Vendeur CII</ram:Name>
+    <ram:SpecifiedLegalOrganization><ram:ID schemeID="0002">111222333</ram:ID></ram:SpecifiedLegalOrganization>
+    <ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">FR11111222333</ram:ID></ram:SpecifiedTaxRegistration>
+  </ram:SellerTradeParty>
+  <ram:BuyerTradeParty>
+    <ram:Name>Acheteur CII</ram:Name>
+    <ram:SpecifiedLegalOrganization><ram:ID schemeID="0002">444555666</ram:ID></ram:SpecifiedLegalOrganization>
+  </ram:BuyerTradeParty>
   <ram:GrandTotalAmount>980.00</ram:GrandTotalAmount>
   <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>
 </rsm:CrossIndustryInvoice>`;

@@ -39,13 +39,21 @@ export function forceFlowStatus(req: Req, res: Res): Res | void {
   if (emitLC) {
     const lcType = flow.flowType.startsWith("Customer") ? "CustomerInvoiceLC" : "SupplierInvoiceLC";
     const md = flow.metadata || {};
+    const sellerSiret = (md.seller && md.seller.siret) || "00000000000000";
+    const buyerSiret = (md.buyer && md.buyer.siret) || "11111111111111";
     lifecycleFlow = simulator.createLifecycleFlow({
       flowType: lcType,
-      invoiceNumber: flow.invoiceNumber || flow.flowId,
-      sellerSiret: (md.seller && md.seller.siret) || "00000000000000",
-      buyerSiret: (md.buyer && md.buyer.siret) || "11111111111111",
       status: { code: statusCode, name: statusName },
       comment: body.comment || null,
+      invoice: { number: flow.invoiceNumber || flow.flowId, date: md.issueDate },
+      seller: {
+        siret: sellerSiret,
+        siren: md.seller?.siren ?? sellerSiret.slice(0, 9),
+      },
+      buyer: {
+        siret: buyerSiret,
+        siren: md.buyer?.siren ?? buyerSiret.slice(0, 9),
+      },
     });
   }
 

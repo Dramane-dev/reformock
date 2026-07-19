@@ -4,6 +4,10 @@ function esc(s: unknown): string {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+function dt(dateStr: string): string {
+  return dateStr.slice(0, 10).replace(/-/g, "");
+}
+
 const LIFECYCLE_STATUSES: readonly LifecycleStatus[] = [
   { code: "200", name: "Déposée" },
   { code: "201", name: "Rejetée", requiresReason: true },
@@ -22,44 +26,65 @@ const LIFECYCLE_STATUSES: readonly LifecycleStatus[] = [
 const HAPPY_PATH: readonly string[] = ["202", "203", "204", "205", "206", "211", "212"];
 
 interface GenerateCDARParams {
-  invoiceNumber: string;
   statusCode: string;
   statusName: string;
-  sellerSiret: string;
-  buyerSiret: string;
   dateTime?: Date;
   comment?: string | null;
+  invoice: {
+    number: string;
+    date?: string | null;
+  };
+  seller: {
+    siret: string;
+    siren: string;
+  };
+  buyer: {
+    siret: string;
+    siren: string;
+  };
 }
 
 function generateCDAR({
-  invoiceNumber,
   statusCode,
   statusName,
-  sellerSiret,
-  buyerSiret,
   dateTime,
   comment,
+  invoice,
+  seller,
+  buyer,
 }: GenerateCDARParams): string {
   const ts = (dateTime || new Date()).toISOString();
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rsm:CrossDomainAcknowledgementAndResponse
     xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossDomainAcknowledgementAndResponse:100"
     xmlns:ram="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100"
+    xmlns:qdt="urn:un:unece:uncefact:data:standard:QualifiedDataType:100"
     xmlns:udt="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100">
   <rsm:ExchangedDocumentContext>
+    <ram:BusinessProcessSpecifiedDocumentContextParameter>
+      <ram:ID>REGULATED</ram:ID>
+    </ram:BusinessProcessSpecifiedDocumentContextParameter>
     <ram:GuidelineSpecifiedDocumentContextParameter>
-      <ram:ID>urn:fdc:fr:2024:lifecycle:1.0</ram:ID>
+      <ram:ID>urn.cpro.gouv.fr:1p0:CDV:invoice</ram:ID>
     </ram:GuidelineSpecifiedDocumentContextParameter>
   </rsm:ExchangedDocumentContext>
   <rsm:ExchangedDocument>
-    <ram:ID>LC-${esc(invoiceNumber)}-${statusCode}</ram:ID>
+    <ram:ID>LC-${esc(invoice.number)}-${statusCode}</ram:ID>
     <ram:TypeCode>916</ram:TypeCode>
     <ram:IssueDateTime><udt:DateTimeString format="205">${ts}</udt:DateTimeString></ram:IssueDateTime>
   </rsm:ExchangedDocument>
   <rsm:AcknowledgementDocument>
     <ram:ReferenceReferencedDocument>
-      <ram:IssuerAssignedID>${esc(invoiceNumber)}</ram:IssuerAssignedID>
-      <ram:TypeCode>380</ram:TypeCode>
+      <ram:ProcessConditionCode>${statusCode}</ram:ProcessConditionCode>
+      <ram:IssuerAssignedID>${esc(invoice.number)}</ram:IssuerAssignedID>
+      <ram:TypeCode>380</ram:TypeCode>${
+        invoice.date
+          ? `
+      <ram:FormattedIssueDateTime>
+        <qdt:DateTimeString format="102">${dt(invoice.date)}</qdt:DateTimeString>
+      </ram:FormattedIssueDateTime>`
+          : ""
+      }
     </ram:ReferenceReferencedDocument>
     <ram:StatusCode>${statusCode}</ram:StatusCode>
     <ram:StatusName>${esc(statusName)}</ram:StatusName>${
@@ -69,10 +94,15 @@ function generateCDAR({
         : ""
     }
     <ram:SenderTradeParty>
-      <ram:ID schemeID="0009">${buyerSiret}</ram:ID>
+      <ram:RoleCode>WK</ram:RoleCode>
     </ram:SenderTradeParty>
+    <ram:IssuerTradeParty>
+        <ram:GlobalID schemeID="0002">${esc(buyer.siren)}</ram:GlobalID>
+        <ram:RoleCode>BY</ram:RoleCode>
+    </ram:IssuerTradeParty>
     <ram:RecipientTradeParty>
-      <ram:ID schemeID="0009">${sellerSiret}</ram:ID>
+      <ram:ID schemeID="0009">${esc(seller.siren)}</ram:ID>
+      <ram:RoleCode>SE</ram:RoleCode>
     </ram:RecipientTradeParty>
   </rsm:AcknowledgementDocument>
 </rsm:CrossDomainAcknowledgementAndResponse>

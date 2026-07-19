@@ -107,7 +107,13 @@ export function depositFlow(req: Req, res: Res): Res | void {
   });
 
   if (flowType === "CustomerInvoice" && invoiceNumber) {
-    simulator.scheduleLifecycleForDepositedInvoice({ flowId: flow.flowId, invoiceNumber });
+    const md = parsed.metadata;
+    simulator.scheduleLifecycleForDepositedInvoice({
+      flowId: flow.flowId,
+      invoice: { number: invoiceNumber, date: md.issueDate },
+      seller: { siret: md.seller?.siret, siren: md.seller?.siren },
+      buyer: { siret: md.buyer?.siret, siren: md.buyer?.siren },
+    });
   }
 
   res.status(202).send(store.toFullFlowInfo(flow));
