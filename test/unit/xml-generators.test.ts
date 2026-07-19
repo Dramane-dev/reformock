@@ -17,6 +17,7 @@ const INVOICE: InvoiceData = {
     name: "Vendeur & Fils",
     siren: "123456789",
     siret: "12345678900011",
+    email: "vendeur@example.com",
     vatNumber: "FR32123456789",
     address: { line1: "1 rue du Test", postalCode: "75001", city: "Paris", countryCode: "FR" },
   },
@@ -24,6 +25,7 @@ const INVOICE: InvoiceData = {
     name: "Acheteur SAS",
     siren: "987654321",
     siret: "98765432100022",
+    email: "acheteur@example.com",
     vatNumber: "FR40987654321",
     address: { line1: "2 avenue Client", postalCode: "69002", city: "Lyon", countryCode: "FR" },
   },
@@ -68,6 +70,30 @@ test("generateUBL escapes XML special characters", () => {
   assert.ok(!/&(?!amp;|lt;|gt;|quot;|apos;)/.test(xml), "no raw ampersands");
 });
 
+test("generateUBL declares the S1 CTC profile instead of the legacy Peppol one", () => {
+  const xml = generateUBL(INVOICE);
+  assert.ok(xml.includes("<cbc:ProfileID>S1</cbc:ProfileID>"));
+  assert.ok(!xml.includes("peppol"), "legacy Peppol billing profile should be gone");
+});
+
+test("generateUBL carries the three mandatory French legal-mention notes", () => {
+  const xml = generateUBL(INVOICE);
+  assert.ok(xml.includes("<cbc:Note>#PMT#"), "late-payment fixed indemnity note (PMT)");
+  assert.ok(xml.includes("recouvrement"), "PMT content");
+  assert.ok(xml.includes("<cbc:Note>#PMD#"), "late-payment penalty rate note (PMD)");
+  assert.ok(xml.includes("taux BCE + 10 points"), "PMD content");
+  assert.ok(
+    xml.includes("<cbc:Note>#AAB#Pas d'escompte pour paiement anticipé</cbc:Note>"),
+    "AAB note",
+  );
+});
+
+test("generateUBL exposes a payee IBAN in the payment means", () => {
+  const xml = generateUBL(INVOICE);
+  assert.ok(xml.includes("<cac:PayeeFinancialAccount>"));
+  assert.ok(xml.includes("<cbc:ID>FR3710096000704155525246C13</cbc:ID>"));
+});
+
 test("generateCII round-trips through the parser", () => {
   const xml = generateCII(INVOICE);
   const parsed = parseFlowFile(Buffer.from(xml, "utf8"));
@@ -77,6 +103,22 @@ test("generateCII round-trips through the parser", () => {
   assert.equal(parsed.metadata.totalInclVat, 2400);
   assert.equal(parsed.metadata.issueDate, "2026-03-04");
   assert.equal(parsed.metadata.seller?.name, "Vendeur &amp; Fils");
+});
+
+test("generateCII carries the three legal-mention notes with their subject codes", () => {
+  const xml = generateCII(INVOICE);
+  for (const code of ["PMT", "PMD", "AAB"]) {
+    assert.ok(xml.includes(`<ram:SubjectCode>${code}</ram:SubjectCode>`), `missing note ${code}`);
+  }
+  assert.ok(xml.includes("recouvrement"), "PMT content");
+  assert.ok(xml.includes("taux BCE + 10 points"), "PMD content");
+  assert.ok(xml.includes("Pas d'escompte pour paiement anticipé"), "AAB content");
+});
+
+test("generateCII exposes a creditor IBAN in the payment means", () => {
+  const xml = generateCII(INVOICE);
+  assert.ok(xml.includes("<ram:PayeePartyCreditorFinancialAccount>"));
+  assert.ok(xml.includes("<ram:IBANID>FR3710096000704155525246C13</ram:IBANID>"));
 });
 
 test("generateCDAR embeds status and round-trips through the parser", () => {

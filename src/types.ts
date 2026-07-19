@@ -30,6 +30,7 @@ export interface Company {
   name: string;
   siren: string;
   siret: string;
+  email: string;
   vatNumber: string;
   address: Address;
 }

@@ -59,11 +59,14 @@ function generateUBL(inv: InvoiceData): string {
          xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
          xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
   <cbc:CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:fdc:cius-fr:2025</cbc:CustomizationID>
-  <cbc:ProfileID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</cbc:ProfileID>
+  <cbc:ProfileID>S1</cbc:ProfileID>
   <cbc:ID>${inv.invoiceNumber}</cbc:ID>
   <cbc:IssueDate>${inv.issueDate}</cbc:IssueDate>
   <cbc:DueDate>${inv.dueDate}</cbc:DueDate>
   <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>
+  <cbc:Note>#PMT#Indemnité forfaitaire pour frais de recouvrement en cas de retard de paiement : 40 €</cbc:Note>
+  <cbc:Note>#PMD#Taux des pénalités de retard : 12,15 % (taux BCE + 10 points)</cbc:Note>
+  <cbc:Note>#AAB#Pas d'escompte pour paiement anticipé</cbc:Note>
   <cbc:DocumentCurrencyCode>${inv.currency}</cbc:DocumentCurrencyCode>
   <cac:AccountingSupplierParty>${party(seller, "0009")}
   </cac:AccountingSupplierParty>
@@ -72,6 +75,9 @@ function generateUBL(inv: InvoiceData): string {
   <cac:PaymentMeans>
     <cbc:PaymentMeansCode>30</cbc:PaymentMeansCode>
     <cbc:PaymentID>${inv.invoiceNumber}</cbc:PaymentID>
+    <cac:PayeeFinancialAccount>
+      <cbc:ID>FR3710096000704155525246C13</cbc:ID>
+    </cac:PayeeFinancialAccount>
   </cac:PaymentMeans>
   <cac:TaxTotal>
     <cbc:TaxAmount currencyID="${inv.currency}">${totals.totalVAT.toFixed(2)}</cbc:TaxAmount>

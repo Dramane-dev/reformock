@@ -111,6 +111,7 @@ function generateCompany(name?: string): Company {
       ]),
       countryCode: "FR",
     },
+    email: `${name?.toLowerCase().replace(/[^a-z0-9]/g, ".") || "contact"}@${pick(["example.com", "test.fr", "demo.org"])}`,
   };
 }
 

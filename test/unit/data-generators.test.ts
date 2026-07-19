@@ -80,6 +80,36 @@ test("generateInvoiceData accepts injected seller/buyer", () => {
   assert.equal(inv.buyer.name, "Buyer Co");
 });
 
+const EMAIL_DOMAINS = ["example.com", "test.fr", "demo.org"];
+
+test("generateCompany derives the email local-part from an explicit name", () => {
+  const c = generateCompany("My Corp");
+  assert.match(c.email, /^my\.corp@(example\.com|test\.fr|demo\.org)$/);
+});
+
+test("generateCompany defaults the email local-part to 'contact' without a name", () => {
+  for (let i = 0; i < 100; i++) {
+    const c = generateCompany();
+    assert.match(c.email, /^contact@(example\.com|test\.fr|demo\.org)$/);
+  }
+});
+
+test("generateCompany sanitises the email local-part to [a-z0-9.]", () => {
+  const c = generateCompany("Conseil & Stratégie Paris");
+  const [local, domain] = c.email.split("@");
+  assert.match(local, /^[a-z0-9.]+$/, `unexpected local part: ${local}`);
+  assert.ok(EMAIL_DOMAINS.includes(domain!), `unexpected domain: ${domain}`);
+});
+
+test("generateInvoiceData gives both parties an email", () => {
+  const inv = generateInvoiceData();
+  for (const party of [inv.seller, inv.buyer]) {
+    const [local, domain] = party.email.split("@");
+    assert.match(local!, /^[a-z0-9.]+$/, `unexpected local part: ${local}`);
+    assert.ok(EMAIL_DOMAINS.includes(domain!), `unexpected domain: ${domain}`);
+  }
+});
+
 test("randInt stays within the inclusive bounds", () => {
   for (let i = 0; i < 1000; i++) {
     const n = randInt(3, 7);

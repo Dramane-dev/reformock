@@ -59,6 +59,9 @@ function generateCII(inv: InvoiceData): string {
           <ram:CityName>${esc(p.address.city)}</ram:CityName>
           <ram:CountryID>${p.address.countryCode}</ram:CountryID>
         </ram:PostalTradeAddress>
+        <ram:URIUniversalCommunication>
+          <ram:URIID schemeID="EM">${p.email}</ram:URIID>
+        </ram:URIUniversalCommunication>
         <ram:SpecifiedTaxRegistration>
           <ram:ID schemeID="VA">${p.vatNumber}</ram:ID>
         </ram:SpecifiedTaxRegistration>`;
@@ -76,6 +79,18 @@ function generateCII(inv: InvoiceData): string {
     <ram:ID>${inv.invoiceNumber}</ram:ID>
     <ram:TypeCode>380</ram:TypeCode>
     <ram:IssueDateTime><udt:DateTimeString format="102">${dt(inv.issueDate)}</udt:DateTimeString></ram:IssueDateTime>
+    <ram:IncludedNote>
+      <ram:Content>Indemnité forfaitaire pour frais de recouvrement en cas de retard de paiement : 40 €</ram:Content>
+      <ram:SubjectCode>PMT</ram:SubjectCode>
+    </ram:IncludedNote>
+    <ram:IncludedNote>
+      <ram:Content>Taux des pénalités de retard : 12,15 % (taux BCE + 10 points)</ram:Content>
+      <ram:SubjectCode>PMD</ram:SubjectCode>
+    </ram:IncludedNote>
+    <ram:IncludedNote>
+      <ram:Content>Pas d'escompte pour paiement anticipé</ram:Content>
+      <ram:SubjectCode>AAB</ram:SubjectCode>
+    </ram:IncludedNote>
   </rsm:ExchangedDocument>
   <rsm:SupplyChainTradeTransaction>${lines}
     <ram:ApplicableHeaderTradeAgreement>
@@ -89,6 +104,9 @@ function generateCII(inv: InvoiceData): string {
       <ram:InvoiceCurrencyCode>${inv.currency}</ram:InvoiceCurrencyCode>
       <ram:SpecifiedTradeSettlementPaymentMeans>
         <ram:TypeCode>30</ram:TypeCode>
+        <ram:PayeePartyCreditorFinancialAccount>
+          <ram:IBANID>FR3710096000704155525246C13</ram:IBANID>
+        </ram:PayeePartyCreditorFinancialAccount>
       </ram:SpecifiedTradeSettlementPaymentMeans>
       <ram:ApplicableTradeTax>
         <ram:CalculatedAmount>${totals.totalVAT.toFixed(2)}</ram:CalculatedAmount>
