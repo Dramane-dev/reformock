@@ -15,11 +15,14 @@ async function init() {
   }
   healthcheck();
   setInterval(healthcheck, 30000);
-  if (!state.AUTH_DISABLED) {
-    await connect(true);
+  if (!state.AUTH_DISABLED && $("clientId").value.trim()) {
+    await connect(true).then(async (ok) => {
+      if (ok) {
+        await loadStatuses();
+        refresh();
+      }
+    });
   }
-  await loadStatuses();
-  refresh();
 }
 
 async function healthcheck() {
@@ -34,7 +37,14 @@ async function healthcheck() {
   }
 }
 
-$("btnConnect").addEventListener("click", () => connect(false).then((ok) => ok && refresh()));
+$("btnConnect").addEventListener("click", () =>
+  connect(false).then(async (ok) => {
+    if (ok) {
+      await loadStatuses();
+      refresh();
+    }
+  }),
+);
 initRegistry();
 initUpload();
 initTabs();
