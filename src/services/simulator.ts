@@ -6,22 +6,32 @@ import { generateReadablePDF } from "../generators/pdf.ts";
 import { config } from "../config.ts";
 import * as store from "./store.ts";
 
-import type { Flow, FlowSyntax, LifecycleStatus } from "../types.ts";
+import type { Flow, FlowMetadata, FlowSyntax, LifecycleStatus } from "../types.ts";
+
+interface LifecycleInvoice {
+  number: string;
+  date?: string | null;
+}
+
+interface LifecycleParty {
+  siret: string;
+  siren: string;
+}
 
 interface CreateLifecycleFlowParams {
   flowType: string;
-  invoiceNumber: string;
-  sellerSiret: string;
-  buyerSiret: string;
   status: { code: string; name: string };
   comment?: string | null;
+  invoice: LifecycleInvoice;
+  seller: LifecycleParty;
+  buyer: LifecycleParty;
 }
 
 interface ScheduleLifecycleParams {
   flowId: string;
-  invoiceNumber: string;
-  sellerSiret?: string;
-  buyerSiret?: string;
+  invoice: LifecycleInvoice;
+  seller?: Partial<LifecycleParty>;
+  buyer?: Partial<LifecycleParty>;
 }
 
 async function createIncomingInvoiceFlow(): Promise<Flow> {
@@ -77,10 +87,10 @@ async function createIncomingInvoiceFlow(): Promise<Flow> {
 
   createLifecycleFlow({
     flowType: "SupplierInvoiceLC",
-    invoiceNumber: inv.invoiceNumber,
-    sellerSiret: inv.seller.siret,
-    buyerSiret: inv.buyer.siret,
     status: { code: "204", name: "Mise à disposition" },
+    invoice: { number: inv.invoiceNumber, date: inv.issueDate },
+    seller: { siret: inv.seller.siret, siren: inv.seller.siren },
+    buyer: { siret: inv.buyer.siret, siren: inv.buyer.siren },
   });
 
   return flow;
@@ -88,33 +98,41 @@ async function createIncomingInvoiceFlow(): Promise<Flow> {
 
 function createLifecycleFlow({
   flowType,
-  invoiceNumber,
-  sellerSiret,
-  buyerSiret,
   status,
   comment,
+  invoice,
+  seller,
+  buyer,
 }: CreateLifecycleFlowParams): Flow {
   const xml = generateCDAR({
-    invoiceNumber,
     statusCode: status.code,
     statusName: status.name,
-    sellerSiret,
-    buyerSiret,
     comment,
+    invoice,
+    seller,
+    buyer,
   });
+  const metadata: FlowMetadata = {
+    relatedInvoice: invoice.number,
+    seller: { siren: seller.siren },
+    buyer: { siren: buyer.siren },
+  };
+  if (invoice.date) {
+    metadata.issueDate = invoice.date;
+  }
   return store.createFlow({
     flowType,
     flowDirection: "In",
     flowSyntax: "CDAR",
-    invoiceNumber,
+    invoiceNumber: invoice.number,
     statusCode: status.code,
     statusName: status.name,
-    metadata: { relatedInvoice: invoiceNumber },
+    metadata,
     documents: {
       Original: {
         content: Buffer.from(xml, "utf8"),
         contentType: "application/xml",
-        filename: `LC_${invoiceNumber}_${status.code}.xml`,
+        filename: `LC_${invoice.number}_${status.code}.xml`,
       },
     },
   });
@@ -122,10 +140,20 @@ function createLifecycleFlow({
 
 function scheduleLifecycleForDepositedInvoice({
   flowId,
-  invoiceNumber,
-  sellerSiret = "00000000000000",
-  buyerSiret = "11111111111111",
+  invoice,
+  seller = {},
+  buyer = {},
 }: ScheduleLifecycleParams): void {
+  const sellerSiret = seller.siret ?? "00000000000000";
+  const buyerSiret = buyer.siret ?? "11111111111111";
+  const sellerParty: LifecycleParty = {
+    siret: sellerSiret,
+    siren: seller.siren ?? sellerSiret.slice(0, 9),
+  };
+  const buyerParty: LifecycleParty = {
+    siret: buyerSiret,
+    siren: buyer.siren ?? buyerSiret.slice(0, 9),
+  };
   const delay = config.simulator.lifecycleDelaySeconds * 1000;
   const statuses = HAPPY_PATH.map((c) => LIFECYCLE_STATUSES.find((s) => s.code === c)).filter(
     (s): s is LifecycleStatus => s !== undefined,
@@ -139,16 +167,16 @@ function scheduleLifecycleForDepositedInvoice({
         }
         createLifecycleFlow({
           flowType: "CustomerInvoiceLC",
-          invoiceNumber,
-          sellerSiret,
-          buyerSiret,
           status,
+          invoice,
+          seller: sellerParty,
+          buyer: buyerParty,
         });
         if (invoiceFlow) {
           store.updateFlowStatus(flowId, { statusCode: status.code, statusName: status.name });
         }
         console.log(
-          `[simulateur] Cycle de vie ${status.code} "${status.name}" généré pour ${invoiceNumber}`,
+          `[simulateur] Cycle de vie ${status.code} "${status.name}" généré pour ${invoice.number}`,
         );
       },
       delay * (i + 1),

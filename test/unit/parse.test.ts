@@ -13,8 +13,21 @@ test("parseFlowFile detects UBL and extracts metadata", () => {
   assert.equal(r.metadata.totalInclVat, 1200.5);
   assert.equal(r.metadata.seller?.name, "Vendeur SARL");
   assert.equal(r.metadata.seller?.vatNumber, "FR12345678901");
+  assert.equal(r.metadata.seller?.siret, "12345678900011");
+  assert.equal(r.metadata.seller?.siren, "123456789");
   assert.equal(r.metadata.buyer?.name, "Acheteur SAS");
   assert.equal(r.metadata.buyer?.vatNumber, "FR98765432109");
+  assert.equal(r.metadata.buyer?.siret, "98765432100022");
+  assert.equal(r.metadata.buyer?.siren, "987654321");
+});
+
+test("parseFlowFile derives seller SIREN from the SIRET or VAT number when absent", () => {
+  const noLegalEntity = UBL_XML.replace(
+    /<cbc:CompanyID schemeID="0002">123456789<\/cbc:CompanyID>/,
+    "",
+  );
+  const r = parseFlowFile(Buffer.from(noLegalEntity, "utf8"));
+  assert.equal(r.metadata.seller?.siren, "123456789");
 });
 
 test("parseFlowFile detects CII and extracts metadata", () => {
@@ -25,7 +38,10 @@ test("parseFlowFile detects CII and extracts metadata", () => {
   assert.equal(r.metadata.currency, "EUR");
   assert.equal(r.metadata.totalInclVat, 980);
   assert.equal(r.metadata.seller?.name, "Vendeur CII");
+  assert.equal(r.metadata.seller?.siren, "111222333");
+  assert.equal(r.metadata.seller?.vatNumber, "FR11111222333");
   assert.equal(r.metadata.buyer?.name, "Acheteur CII");
+  assert.equal(r.metadata.buyer?.siren, "444555666");
 });
 
 test("parseFlowFile detects CDAR lifecycle status", () => {
