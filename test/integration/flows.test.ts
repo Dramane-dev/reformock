@@ -2,7 +2,7 @@ import { test, before, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 
-import { newApp, getToken, authHeader, multipart, UBL_XML } from "../helpers.ts";
+import { newApp, getToken, authHeader, multipart, UBL_XML, SAMPLE_UBL } from "../helpers.ts";
 import * as store from "../../src/services/store.ts";
 import type { FastifyInstance } from "fastify";
 
@@ -52,6 +52,35 @@ test("POST /v1/flows auto-detects the syntax when flowInfo omits it", async () =
   const res = await deposit(UBL_XML, { name: "invoice.xml" });
   assert.equal(res.statusCode, 202);
   assert.equal(res.json().flowSyntax, "UBL");
+});
+
+test("POST /v1/flows generates the readable PDF and converted CII for an invoice upload", async () => {
+  const res = await deposit(SAMPLE_UBL, { name: "invoice.xml", flowSyntax: "UBL" });
+  assert.equal(res.statusCode, 202);
+  const { flowId } = res.json();
+
+  const stored = store.getFlow(flowId);
+  assert.deepEqual(Object.keys(stored!.documents).sort(), [
+    "Converted",
+    "Original",
+    "ReadableView",
+  ]);
+
+  const pdf = await app.inject({
+    method: "GET",
+    url: `/v1/flows/${flowId}?docType=ReadableView`,
+    headers: authHeader(token),
+  });
+  assert.equal(pdf.statusCode, 200);
+  assert.equal(pdf.headers["content-type"], "application/pdf");
+
+  const converted = await app.inject({
+    method: "GET",
+    url: `/v1/flows/${flowId}?docType=Converted`,
+    headers: authHeader(token),
+  });
+  assert.equal(converted.statusCode, 200);
+  assert.match(converted.payload, /CrossIndustryInvoice/);
 });
 
 test("POST /v1/flows rejects a checksum mismatch", async () => {

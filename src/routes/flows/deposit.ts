@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 
 import * as store from "../../services/store.ts";
 import * as simulator from "../../services/simulator.ts";
+import { buildDerivedDocuments } from "../../services/convert.ts";
 import { parseFlowFile } from "../../utils/parse.ts";
 import { sendError } from "../../utils/http.ts";
 
@@ -18,7 +19,7 @@ interface FlowInfoInput {
   flowType?: string;
 }
 
-export function depositFlow(req: Req, res: Res): Res | void {
+export async function depositFlow(req: Req, res: Res): Promise<Res | void> {
   const body = req.body || {};
 
   let content: Buffer;
@@ -90,6 +91,14 @@ export function depositFlow(req: Req, res: Res): Res | void {
   const flowType: string = body.flowType || flowInfo.flowType || "CustomerInvoice";
   const hasRule = !!flowInfo.processingRule;
 
+  const derived = await buildDerivedDocuments(content, flowSyntax, invoiceNumber);
+  if (derived.skipReason) {
+    req.log.warn(
+      { flowSyntax, invoiceNumber, reason: derived.skipReason },
+      "Uploaded invoice not converted",
+    );
+  }
+
   const flow = store.createFlow({
     flowType,
     flowDirection: "Out",
@@ -103,7 +112,10 @@ export function depositFlow(req: Req, res: Res): Res | void {
     trackingId,
     invoiceNumber,
     metadata: { receivedFilename: filename, size: content.length },
-    documents: { Original: { content, contentType, filename } },
+    documents: {
+      Original: { content, contentType, filename },
+      ...(derived.skipReason === undefined && derived.documents),
+    },
   });
 
   if (flowType === "CustomerInvoice" && invoiceNumber) {

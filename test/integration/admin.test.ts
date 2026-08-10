@@ -1,7 +1,15 @@
 import { test, before, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
 
-import { newApp, getToken, authHeader, multipart, UBL_XML, CDAR_XML } from "../helpers.ts";
+import {
+  newApp,
+  getToken,
+  authHeader,
+  multipart,
+  UBL_XML,
+  CDAR_XML,
+  SAMPLE_UBL,
+} from "../helpers.ts";
 import type { MultipartField } from "../helpers.ts";
 import * as store from "../../src/services/store.ts";
 import type { FastifyInstance } from "fastify";
@@ -58,6 +66,24 @@ test("POST /v1/admin/inject imports multiple files and infers types", async () =
   assert.equal(byName["inv.xml"], "SupplierInvoice");
   assert.equal(byName["lc.xml"], "CustomerInvoiceLC");
   assert.ok(body.flows.every((f: { trackingId: string }) => f.trackingId === "LOT-1"));
+});
+
+test("POST /v1/admin/inject generates PDF + converted doc for invoices, but not for CDAR", async () => {
+  const res = await injectFiles({ direction: "In" }, [
+    { name: "invoice.xml", content: SAMPLE_UBL },
+    { name: "status.xml", content: CDAR_XML },
+  ]);
+  assert.equal(res.statusCode, 201);
+  const byName = Object.fromEntries(
+    res
+      .json()
+      .flows.map((f: { name: string; availableDocTypes: string[] }) => [
+        f.name,
+        [...f.availableDocTypes].sort(),
+      ]),
+  );
+  assert.deepEqual(byName["invoice.xml"], ["Converted", "Original", "ReadableView"]);
+  assert.deepEqual(byName["status.xml"], ["Original"]);
 });
 
 test("POST /v1/admin/inject rejects a request with no files", async () => {

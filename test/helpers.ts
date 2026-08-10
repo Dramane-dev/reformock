@@ -1,6 +1,9 @@
 import { buildApp } from "../src/app.ts";
+import { generateUBL } from "../src/generators/ubl.ts";
+import { generateCII } from "../src/generators/cii.ts";
 
 import type { FastifyInstance } from "fastify";
+import type { InvoiceData } from "../src/types.ts";
 
 export async function newApp(): Promise<FastifyInstance> {
   return buildApp();
@@ -130,3 +133,53 @@ export const CDAR_XML = `<?xml version="1.0" encoding="UTF-8"?>
     <ram:StatusName>Approuvée</ram:StatusName>
   </rsm:AcknowledgementDocument>
 </rsm:CrossDomainAcknowledgementAndResponse>`;
+
+export function sampleInvoice(overrides: Partial<InvoiceData> = {}): InvoiceData {
+  return {
+    invoiceNumber: "FA-TEST-001",
+    issueDate: "2026-03-01",
+    dueDate: "2026-03-31",
+    currency: "EUR",
+    seller: {
+      name: "Vendeur Test",
+      siren: "111222333",
+      siret: "11122233300019",
+      email: "vendeur@test.fr",
+      vatNumber: "FR11111222333",
+      address: { line1: "1 rue A", postalCode: "75001", city: "Paris", countryCode: "FR" },
+    },
+    buyer: {
+      name: "Acheteur & Fils",
+      siren: "444555666",
+      siret: "44455566600028",
+      email: "acheteur@test.fr",
+      vatNumber: "FR44444555666",
+      address: { line1: "2 rue B", postalCode: "69002", city: "Lyon", countryCode: "FR" },
+    },
+    lines: [
+      {
+        id: 1,
+        name: "Article Un",
+        unit: "C62",
+        unitPrice: 100,
+        quantity: 2,
+        lineTotal: 200,
+        vatRate: 20,
+      },
+      {
+        id: 2,
+        name: "Article Deux",
+        unit: "H87",
+        unitPrice: 50,
+        quantity: 3,
+        lineTotal: 150,
+        vatRate: 20,
+      },
+    ],
+    totals: { totalHT: 350, totalVAT: 70, vatRate: 20, totalTTC: 420 },
+    ...overrides,
+  };
+}
+
+export const SAMPLE_UBL = generateUBL(sampleInvoice());
+export const SAMPLE_CII = generateCII(sampleInvoice());

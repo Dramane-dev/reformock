@@ -1,11 +1,12 @@
 import * as store from "../../services/store.ts";
+import { buildDerivedDocuments } from "../../services/convert.ts";
 import { parseFlowFile } from "../../utils/parse.ts";
 import { sendError } from "../../utils/http.ts";
 
 import type { Req, Res } from "../../utils/http.ts";
 import type { UploadedFile } from "../../utils/upload.ts";
 
-export function adminInjectFlows(req: Req, res: Res): Res | void {
+export async function adminInjectFlows(req: Req, res: Res): Promise<Res | void> {
   const body = req.body || {};
   const files: UploadedFile[] = req.uploadedFiles ?? [];
   if (files.length === 0) {
@@ -31,6 +32,17 @@ export function adminInjectFlows(req: Req, res: Res): Res | void {
         flowType = flowDirection === "In" ? "SupplierInvoice" : "CustomerInvoice";
       }
     }
+    const derived = await buildDerivedDocuments(f.buffer, parsed.flowSyntax, parsed.invoiceNumber);
+    if (derived.skipReason) {
+      req.log.warn(
+        {
+          flowSyntax: parsed.flowSyntax,
+          invoiceNumber: parsed.invoiceNumber,
+          reason: derived.skipReason,
+        },
+        "Uploaded invoice not converted",
+      );
+    }
     const flow = store.createFlow({
       flowType,
       flowDirection,
@@ -51,6 +63,7 @@ export function adminInjectFlows(req: Req, res: Res): Res | void {
           contentType: f.mimetype || "application/xml",
           filename: f.originalname,
         },
+        ...(derived.skipReason === undefined && derived.documents),
       },
     });
     created.push(store.toSummary(flow));
