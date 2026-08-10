@@ -1,6 +1,6 @@
 {
   "name": "reformock",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Réformock — mock PDP de la RFE (Réforme de la Facturation Électronique) : API Flow Service AFNOR XP Z12-013 pour tests d'intégration",
   "type": "module",
   "main": "src/index.ts",
