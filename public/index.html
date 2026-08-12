@@ -29,18 +29,32 @@
 
     <main>
       <section class="card" id="authCard">
-        <div class="body authbar">
-          <span class="authtitle">Compte API</span>
-          <div class="authfield">
-            <label for="clientId">client_id</label>
-            <input type="text" id="clientId" placeholder="client_id" autocomplete="off" />
+        <div class="body">
+          <div class="authbar-header">
+            <span class="authtitle">Compte API</span>
+            <span id="authState">non connecté</span>
           </div>
-          <div class="authfield">
-            <label for="clientSecret">client_secret</label>
-            <input type="text" id="clientSecret" placeholder="client_secret" autocomplete="off" />
+          <div class="authbar-content">
+            <div class="authfield">
+              <label for="clientId">client_id</label>
+              <input
+                type="text"
+                id="clientId"
+                placeholder="client_id"
+                autocomplete="off"
+              />
+            </div>
+            <div class="authfield">
+              <label for="clientSecret">client_secret</label>
+              <input
+                type="text"
+                id="clientSecret"
+                placeholder="client_secret"
+                autocomplete="off"
+              />
+            </div>
+            <button id="btnConnect">Obtenir un jeton</button>
           </div>
-          <button id="btnConnect">Obtenir un jeton</button>
-          <span id="authState">non connecté</span>
         </div>
       </section>
 

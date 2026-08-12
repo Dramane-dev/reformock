@@ -592,7 +592,16 @@ td.mono,
   opacity: 0.4;
 }
 
-.authbar {
+.authbar-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.authbar-content {
   display: flex;
   align-items: flex-end;
   gap: 14px;
